@@ -1,32 +1,36 @@
 import React from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import './Navbar.css';
 
 const Navbar = () => {
-  const token = localStorage.getItem('token');
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    // Navigate to login page to refresh the state and navbar
-    navigate('/login');
-  };
+  const location = useLocation();
 
   return (
-    <nav>
-      <Link to="/portfolio" className="nav-brand">
-        <h1>My Website</h1>
-      </Link>
+    <nav className="navbar">
+      <div className="nav-brand">
+        <Link to="/">
+          <h2>Project Manager</h2>
+        </Link>
+      </div>
       <div className="nav-links">
-        <NavLink to="/portfolio">Portfolio</NavLink>
-        <NavLink to="/submit-project">Submit Project</NavLink>
-        <NavLink to="/admin/add-project">Add Portfolio Item</NavLink>
-        <NavLink to="/login">Login</NavLink>
-        <NavLink to="/register">Register</NavLink>
-        
-        {/* Show logout button only when logged in */}
-        {token && (
-          <button onClick={handleLogout} className="logout-button">Logout</button>
-        )}
+        <Link 
+          to="/portfolio" 
+          className={location.pathname === '/portfolio' ? 'active' : ''}
+        >
+          Our Work
+        </Link>
+        <Link 
+          to="/submit-project" 
+          className={location.pathname === '/submit-project' ? 'active' : ''}
+        >
+          Submit Project
+        </Link>
+        <Link 
+          to="/admin" 
+          className={location.pathname === '/admin' ? 'active' : ''}
+        >
+          Admin
+        </Link>
       </div>
     </nav>
   );

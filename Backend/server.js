@@ -15,8 +15,6 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.error(err));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/portfolio', require('./routes/portfolio'));
 app.use('/api/projects', require('./routes/projects'));
 
 // Start server
