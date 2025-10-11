@@ -62,31 +62,54 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ROUTE 4: Update project status
+  
+// ROUTE 4: Update project status or delete if declined
 router.put('/:id/status', async (req, res) => {
+  const { status } = req.body;
+  const { id } = req.params;
+
   try {
-    const { status } = req.body;
+    const project = await Project.findById(id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Handle Decline (Delete) Action
+    if (status === 'declined') {
+      if (project.status !== 'pending') {
+        return res.status(400).json({ error: 'Only pending projects can be declined.' });
+      }
+      await Project.findByIdAndDelete(id);
+      return res.json({ message: 'Project declined and removed successfully.' });
+    }
+
+    // Enforce State Transition Rules
+    const allowedTransitions = {
+      pending: ['approved'],
+      approved: ['completed'],
+    };
+
+    if (!allowedTransitions[project.status] || !allowedTransitions[project.status].includes(status)) {
+      return res.status(400).json({ error: `Cannot transition from ${project.status} to ${status}.` });
+    }
+
+    // Update Status
     const updateData = { status };
-    
     if (status === 'approved') {
       updateData.approvedAt = new Date();
     } else if (status === 'completed') {
       updateData.completedAt = new Date();
     }
 
-    const project = await Project.findByIdAndUpdate(
-      req.params.id,
+    const updatedProject = await Project.findByIdAndUpdate(
+      id,
       updateData,
       { new: true }
     );
 
-    if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
-    }
-
-    res.json({ message: 'Project status updated successfully', project });
+    res.json({ message: 'Project status updated successfully', project: updatedProject });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error while updating status.' });
   }
 });
 
