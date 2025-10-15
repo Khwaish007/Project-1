@@ -10,7 +10,9 @@ import {
   DevicePhoneMobileIcon,
   GlobeAltIcon,
   LightBulbIcon,
-  StarIcon
+  StarIcon,
+  PlusCircleIcon,
+  XCircleIcon
 } from '@heroicons/react/24/solid';
 
 // Enhanced Loader with rotating elements
@@ -230,9 +232,13 @@ const ProjectForm = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phoneNumber: '',
+    companyName: '',
     projectTitle: '',
     projectDetails: '',
-    deadline: '',
+    startDate: '',
+    endDate: '',
+    imageUrls: [''], // Initialize with one empty image URL field
   });
   const [status, setStatus] = useState({ message: '', error: '', loading: false });
   const [isVisible, setIsVisible] = useState(false);
@@ -242,7 +248,17 @@ const ProjectForm = () => {
   }, []);
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', projectTitle: '', projectDetails: '', deadline: '' });
+    setFormData({
+      name: '',
+      email: '',
+      phoneNumber: '',
+      companyName: '',
+      projectTitle: '',
+      projectDetails: '',
+      startDate: '',
+      endDate: '',
+      imageUrls: [''],
+    });
     setStatus({ message: '', error: '', loading: false });
   };
 
@@ -250,12 +266,32 @@ const ProjectForm = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleImageUrlChange = (index, value) => {
+    const newImageUrls = [...formData.imageUrls];
+    newImageUrls[index] = value;
+    setFormData({ ...formData, imageUrls: newImageUrls });
+  };
+
+  const addImageUrlField = () => {
+    setFormData({ ...formData, imageUrls: [...formData.imageUrls, ''] });
+  };
+
+  const removeImageUrlField = (index) => {
+    const newImageUrls = formData.imageUrls.filter((_, i) => i !== index);
+    setFormData({ ...formData, imageUrls: newImageUrls });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus({ message: '', error: '', loading: true });
     try {
+      // Filter out empty image URLs before submitting
+      const submissionData = {
+        ...formData,
+        imageUrls: formData.imageUrls.filter(url => url.trim() !== ''),
+      };
       await new Promise(resolve => setTimeout(resolve, 2000));
-      const res = await axios.post('http://localhost:5001/api/projects', formData);
+      const res = await axios.post('http://localhost:5001/api/projects', submissionData);
       setStatus({ message: res.data.message, error: '', loading: false });
     } catch (err) {
       setStatus({
@@ -322,6 +358,20 @@ const ProjectForm = () => {
                     onChange={handleChange}
                     required
                   />
+                  <FloatingInput
+                    type="text"
+                    name="companyName"
+                    placeholder="Company Name (Optional)"
+                    value={formData.companyName}
+                    onChange={handleChange}
+                  />
+                  <FloatingInput
+                    type="tel"
+                    name="phoneNumber"
+                    placeholder="Phone Number (Optional)"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                  />
                 </div>
 
                 {/* Project Information */}
@@ -344,20 +394,69 @@ const ProjectForm = () => {
                   required
                 />
 
-                {/* Deadline Section */}
-                <div className="relative">
+                {/* Date Range Section */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-300 mb-3">
+                      Project Start Date
+                    </label>
+                    <input
+                      type="date"
+                      name="startDate"
+                      value={formData.startDate}
+                      onChange={handleChange}
+                      required
+                      className="w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700/50 rounded-2xl px-6 py-4 text-white focus:border-indigo-400 focus:ring-0 transition-all duration-300 focus:shadow-lg focus:shadow-indigo-500/20"
+                      style={{ colorScheme: 'dark' }}
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-300 mb-3">
+                      Project End Date
+                    </label>
+                    <input
+                      type="date"
+                      name="endDate"
+                      value={formData.endDate}
+                      onChange={handleChange}
+                      required
+                      className="w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700/50 rounded-2xl px-6 py-4 text-white focus:border-indigo-400 focus:ring-0 transition-all duration-300 focus:shadow-lg focus:shadow-indigo-500/20"
+                      style={{ colorScheme: 'dark' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Image URLs Section */}
+                <div>
                   <label className="block text-sm font-medium text-gray-300 mb-3">
-                    Preferred Timeline
+                    Project Image URLs (Optional)
                   </label>
-                  <input
-                    type="date"
-                    name="deadline"
-                    value={formData.deadline}
-                    onChange={handleChange}
-                    required
-                    className="w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700/50 rounded-2xl px-6 py-4 text-white focus:border-indigo-400 focus:ring-0 transition-all duration-300 focus:shadow-lg focus:shadow-indigo-500/20"
-                    style={{ colorScheme: 'dark' }}
-                  />
+                  <div className="space-y-4">
+                    {formData.imageUrls.map((url, index) => (
+                      <div key={index} className="flex items-center space-x-3">
+                        <FloatingInput
+                          type="text"
+                          name={`imageUrl-${index}`}
+                          placeholder={`Image URL ${index + 1}`}
+                          value={url}
+                          onChange={(e) => handleImageUrlChange(index, e.target.value)}
+                        />
+                        {formData.imageUrls.length > 1 && (
+                          <button type="button" onClick={() => removeImageUrlField(index)} className="text-red-400 hover:text-red-300">
+                            <XCircleIcon className="w-7 h-7" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addImageUrlField}
+                      className="flex items-center text-indigo-400 hover:text-indigo-300 transition-colors duration-200"
+                    >
+                      <PlusCircleIcon className="w-6 h-6 mr-2" />
+                      Add Another Image
+                    </button>
+                  </div>
                 </div>
 
                 {/* Error Message */}

@@ -26,9 +26,12 @@ router.post('/', async (req, res) => {
         <h1>New Project Inquiry</h1>
         <p><strong>Name:</strong> ${project.name}</p>
         <p><strong>Email:</strong> ${project.email}</p>
+        ${project.phoneNumber ? `<p><strong>Phone:</strong> ${project.phoneNumber}</p>` : ''}
+        ${project.companyName ? `<p><strong>Company:</strong> ${project.companyName}</p>` : ''}
         <p><strong>Project:</strong> ${project.projectTitle}</p>
         <p><strong>Details:</strong> ${project.projectDetails}</p>
-        <p><strong>Deadline:</strong> ${new Date(project.deadline).toLocaleDateString()}</p>
+        <p><strong>Start Date:</strong> ${new Date(project.startDate).toLocaleDateString()}</p>
+        <p><strong>End Date:</strong> ${new Date(project.endDate).toLocaleDateString()}</p>
         <p>Visit your admin dashboard to approve.</p>
       `,
     };
@@ -44,7 +47,7 @@ router.post('/', async (req, res) => {
 router.get('/completed', async (req, res) => {
   try {
     const completedProjects = await Project.find({ status: 'completed' })
-      .select('name projectTitle projectDetails submittedAt completedAt')
+      .select('name projectTitle projectDetails submittedAt completedAt imageUrls techStack')
       .sort({ completedAt: -1 });
     res.json(completedProjects);
   } catch (error) {
@@ -63,9 +66,9 @@ router.get('/', async (req, res) => {
 });
 
   
-// ROUTE 4: Update project status or delete if declined
+// ROUTE 4: Update project status, images, or tech stack
 router.put('/:id/status', async (req, res) => {
-  const { status } = req.body;
+  const { status, imageUrls, techStack } = req.body;
   const { id } = req.params;
 
   try {
@@ -83,33 +86,51 @@ router.put('/:id/status', async (req, res) => {
       return res.json({ message: 'Project declined and removed successfully.' });
     }
 
-    // Enforce State Transition Rules
-    const allowedTransitions = {
-      pending: ['approved'],
-      approved: ['completed'],
-    };
+    // Prepare update data
+    const updateData = {};
 
-    if (!allowedTransitions[project.status] || !allowedTransitions[project.status].includes(status)) {
-      return res.status(400).json({ error: `Cannot transition from ${project.status} to ${status}.` });
+    // Handle Status Transition
+    if (status && status !== project.status) {
+      const allowedTransitions = {
+        pending: ['approved'],
+        approved: ['completed'],
+      };
+
+      if (!allowedTransitions[project.status] || !allowedTransitions[project.status].includes(status)) {
+        return res.status(400).json({ error: `Cannot transition from ${project.status} to ${status}.` });
+      }
+      
+      updateData.status = status;
+      if (status === 'approved') {
+        updateData.approvedAt = new Date();
+      } else if (status === 'completed') {
+        updateData.completedAt = new Date();
+      }
     }
 
-    // Update Status
-    const updateData = { status };
-    if (status === 'approved') {
-      updateData.approvedAt = new Date();
-    } else if (status === 'completed') {
-      updateData.completedAt = new Date();
+    // Handle Image URLs update
+    if (imageUrls && Array.isArray(imageUrls)) {
+      updateData.imageUrls = imageUrls;
+    }
+
+    // Handle Tech Stack update
+    if (techStack && Array.isArray(techStack)) {
+      updateData.techStack = techStack;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No update data provided.' });
     }
 
     const updatedProject = await Project.findByIdAndUpdate(
       id,
-      updateData,
+      { $set: updateData },
       { new: true }
     );
 
-    res.json({ message: 'Project status updated successfully', project: updatedProject });
+    res.json({ message: 'Project updated successfully', project: updatedProject });
   } catch (error) {
-    res.status(500).json({ error: 'Server error while updating status.' });
+    res.status(500).json({ error: 'Server error while updating project.' });
   }
 });
 

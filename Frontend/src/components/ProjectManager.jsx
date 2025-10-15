@@ -17,7 +17,13 @@ import {
   CpuChipIcon,
   RocketLaunchIcon,
   StarIcon,
-  TrophyIcon
+  TrophyIcon,
+  PlusCircleIcon,
+  XCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  BriefcaseIcon,
+  WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline';
 
 // Enhanced Loading Animation
@@ -201,9 +207,100 @@ const StatsCard = ({ name, count, icon: Icon, color, trend }) => (
   </div>
 );
 
+// Image Slider Component (for Admin)
+const ImageSliderAdmin = ({ images }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  if (!images || images.length === 0) {
+    return (
+      <div className="aspect-video bg-gray-700/50 rounded-lg flex items-center justify-center mb-4">
+        <BriefcaseIcon className="w-10 h-10 text-gray-500" />
+        <span className="ml-2 text-gray-400">No images provided</span>
+      </div>
+    );
+  }
+
+  const goToPrevious = () => {
+    const isFirstSlide = currentIndex === 0;
+    const newIndex = isFirstSlide ? images.length - 1 : currentIndex - 1;
+    setCurrentIndex(newIndex);
+  };
+
+  const goToNext = () => {
+    const isLastSlide = currentIndex === images.length - 1;
+    const newIndex = isLastSlide ? 0 : currentIndex + 1;
+    setCurrentIndex(newIndex);
+  };
+
+  return (
+    <div className="relative h-48 w-full overflow-hidden group/slider mb-4 rounded-lg">
+      <div
+        className="w-full h-full bg-cover bg-center transition-transform duration-500 ease-in-out"
+        style={{ backgroundImage: `url(${images[currentIndex]})` }}
+      ></div>
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={goToPrevious}
+            className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/40 text-white p-1 rounded-full opacity-0 group-hover/slider:opacity-100 transition-opacity"
+          >
+            <ChevronLeftIcon className="w-5 h-5" />
+          </button>
+          <button
+            onClick={goToNext}
+            className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/40 text-white p-1 rounded-full opacity-0 group-hover/slider:opacity-100 transition-opacity"
+          >
+            <ChevronRightIcon className="w-5 h-5" />
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
+
 // Enhanced Project Card
 const ProjectCard = ({ project, updateProjectStatus }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [imageUrls, setImageUrls] = useState(project.imageUrls || []);
+  const [techStack, setTechStack] = useState(project.techStack || []);
+
+  const handleImageUrlChange = (index, value) => {
+    const newImageUrls = [...imageUrls];
+    newImageUrls[index] = value;
+    setImageUrls(newImageUrls);
+  };
+
+  const addImageUrlField = () => {
+    setImageUrls([...imageUrls, '']);
+  };
+
+  const removeImageUrlField = (index) => {
+    const newImageUrls = imageUrls.filter((_, i) => i !== index);
+    setImageUrls(newImageUrls);
+  };
+
+  const handleTechStackChange = (index, value) => {
+    const newTechStack = [...techStack];
+    newTechStack[index] = value;
+    setTechStack(newTechStack);
+  };
+
+  const addTechStackField = () => {
+    setTechStack([...techStack, '']);
+  };
+
+  const removeTechStackField = (index) => {
+    const newTechStack = techStack.filter((_, i) => i !== index);
+    setTechStack(newTechStack);
+  };
+
+  const saveChanges = () => {
+    const filteredUrls = imageUrls.filter(url => url.trim() !== '');
+    const filteredTech = techStack.filter(tech => tech.trim() !== '');
+    updateProjectStatus(project._id, project.status, { imageUrls: filteredUrls, techStack: filteredTech });
+    setIsEditing(false);
+  };
   
   const getStatusConfig = (status) => {
     switch (status) {
@@ -246,14 +343,14 @@ const ProjectCard = ({ project, updateProjectStatus }) => {
             <h3 className="text-xl font-semibold text-white group-hover:text-indigo-400 transition-colors duration-300 mb-2">
               {project.projectTitle}
             </h3>
-            <div className="flex items-center space-x-4 text-sm text-gray-400">
+            <div className="flex flex-col space-y-1 text-sm text-gray-400">
               <span className="flex items-center">
-                <UserGroupIcon className="w-4 h-4 mr-1" />
+                <UserGroupIcon className="w-4 h-4 mr-2" />
                 {project.name}
               </span>
               <span className="flex items-center">
-                <CalendarDaysIcon className="w-4 h-4 mr-1" />
-                {new Date(project.deadline).toLocaleDateString()}
+                <CalendarDaysIcon className="w-4 h-4 mr-2" />
+                {new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}
               </span>
             </div>
           </div>
@@ -265,6 +362,85 @@ const ProjectCard = ({ project, updateProjectStatus }) => {
             </div>
           </div>
         </div>
+
+        {/* Image & Tech Stack Display/Edit Section */}
+        {isEditing ? (
+          <div className="mb-4 p-4 bg-gray-700/50 rounded-lg space-y-6">
+            {/* Image URL Editor */}
+            <div>
+              <h4 className="text-white font-semibold mb-3">Edit Image URLs</h4>
+              <div className="space-y-3">
+                {imageUrls.map((url, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      placeholder={`Image URL ${index + 1}`}
+                      value={url}
+                      onChange={(e) => handleImageUrlChange(index, e.target.value)}
+                      className="flex-grow bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm"
+                    />
+                    <button type="button" onClick={() => removeImageUrlField(index)} className="text-red-400">
+                      <XCircleIcon className="w-6 h-6" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button onClick={addImageUrlField} className="flex items-center text-indigo-400 text-sm mt-2">
+                <PlusCircleIcon className="w-5 h-5 mr-1" /> Add Image
+              </button>
+            </div>
+
+            {/* Tech Stack Editor */}
+            <div>
+              <h4 className="text-white font-semibold mb-3">Edit Tech Stack</h4>
+              <div className="space-y-3">
+                {techStack.map((tech, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      placeholder={`Technology ${index + 1}`}
+                      value={tech}
+                      onChange={(e) => handleTechStackChange(index, e.target.value)}
+                      className="flex-grow bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm"
+                    />
+                    <button type="button" onClick={() => removeTechStackField(index)} className="text-red-400">
+                      <XCircleIcon className="w-6 h-6" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button onClick={addTechStackField} className="flex items-center text-indigo-400 text-sm mt-2">
+                <PlusCircleIcon className="w-5 h-5 mr-1" /> Add Technology
+              </button>
+            </div>
+
+            <div className="flex justify-end">
+              <button onClick={saveChanges} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg">
+                Save All Changes
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-4">
+            <ImageSliderAdmin images={project.imageUrls} />
+            {project.techStack && project.techStack.length > 0 && (
+              <div className="my-4">
+                <h4 className="text-sm font-semibold text-gray-400 mb-2">Tech Stack</h4>
+                <div className="flex flex-wrap gap-2">
+                  {project.techStack.map((tech, i) => (
+                    <span key={i} className="px-2 py-1 bg-gray-600/50 text-indigo-300 text-xs font-medium rounded-full">
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button onClick={() => setIsEditing(true)} className="flex items-center text-indigo-400 text-sm hover:text-indigo-300">
+              <WrenchScrewdriverIcon className="w-4 h-4 mr-1" />
+              Edit Details
+            </button>
+          </div>
+        )}
 
         {/* Project Details */}
         <div className="mb-4">
@@ -282,10 +458,19 @@ const ProjectCard = ({ project, updateProjectStatus }) => {
         </div>
 
         {/* Contact Info */}
-        <div className="bg-gray-700/30 rounded-xl p-3 mb-4">
+        <div className="bg-gray-700/30 rounded-xl p-3 mb-4 space-y-2">
           <p className="text-sm text-gray-400">
-            Contact: <span className="text-white font-medium">{project.email}</span>
+            Client: <span className="text-white font-medium">{project.name}</span>
+            {project.companyName && ` (${project.companyName})`}
           </p>
+          <p className="text-sm text-gray-400">
+            Email: <a href={`mailto:${project.email}`} className="text-indigo-400 hover:underline">{project.email}</a>
+          </p>
+          {project.phoneNumber && (
+            <p className="text-sm text-gray-400">
+              Phone: <span className="text-white font-medium">{project.phoneNumber}</span>
+            </p>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -398,7 +583,7 @@ const ProjectManager = () => {
     }
   };
 
-  const updateProjectStatus = async (projectId, newStatus) => {
+  const updateProjectStatus = async (projectId, newStatus, data) => {
     if (newStatus === 'declined') {
       if (!window.confirm('⚠️ Are you sure you want to decline and permanently delete this project?\n\nThis action cannot be undone and will remove all project data.')) {
         return;
@@ -406,14 +591,20 @@ const ProjectManager = () => {
     }
 
     const originalProjects = [...projects];
+    const payload = { status: newStatus, ...data };
 
     try {
-      await axios.put(`http://localhost:5001/api/projects/${projectId}/status`, { status: newStatus });
+      await axios.put(`http://localhost:5001/api/projects/${projectId}/status`, payload);
       
       if (newStatus === 'declined') {
         setProjects(projects.filter(p => p._id !== projectId));
       } else {
-        setProjects(projects.map(p => p._id === projectId ? { ...p, status: newStatus } : p));
+        setProjects(projects.map(p => {
+          if (p._id === projectId) {
+            return { ...p, ...payload };
+          }
+          return p;
+        }));
       }
     } catch (err) {
       setError(err.response?.data?.error || 'An error occurred. Changes reverted.');

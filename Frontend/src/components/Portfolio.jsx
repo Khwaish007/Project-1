@@ -11,20 +11,85 @@ import {
   GlobeAltIcon,
   RocketLaunchIcon,
   SparklesIcon,
-  StarIcon
+  StarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 const PortfolioSkeleton = () => (
-  <div className="bg-gray-700/50 p-6 rounded-2xl animate-pulse">
-    <div className="h-6 bg-gray-600 rounded w-3/4 mb-4"></div>
-    <div className="h-4 bg-gray-600 rounded w-full mb-2"></div>
-    <div className="h-4 bg-gray-600 rounded w-5/6 mb-6"></div>
-    <div className="flex justify-between items-center border-t border-gray-600 pt-4">
-      <div className="h-8 bg-gray-600 rounded w-1/3"></div>
-      <div className="h-8 bg-gray-600 rounded w-1/4"></div>
+  <div className="bg-gray-700/50 rounded-2xl animate-pulse">
+    <div className="aspect-video bg-gray-600 rounded-t-2xl"></div>
+    <div className="p-6">
+      <div className="h-6 bg-gray-600 rounded w-3/4 mb-4"></div>
+      <div className="h-4 bg-gray-600 rounded w-full mb-2"></div>
+      <div className="h-4 bg-gray-600 rounded w-5/6 mb-6"></div>
+      <div className="flex justify-between items-center border-t border-gray-600 pt-4">
+        <div className="h-8 bg-gray-600 rounded w-1/3"></div>
+        <div className="h-8 bg-gray-600 rounded w-1/4"></div>
+      </div>
     </div>
   </div>
 );
+
+// Image Slider Component
+const ImageSlider = ({ images }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  if (!images || images.length === 0) {
+    return (
+      <div className="aspect-video bg-gray-800 flex items-center justify-center rounded-t-2xl">
+        <BriefcaseIcon className="w-12 h-12 text-gray-600" />
+      </div>
+    );
+  }
+
+  const goToPrevious = () => {
+    const isFirstSlide = currentIndex === 0;
+    const newIndex = isFirstSlide ? images.length - 1 : currentIndex - 1;
+    setCurrentIndex(newIndex);
+  };
+
+  const goToNext = () => {
+    const isLastSlide = currentIndex === images.length - 1;
+    const newIndex = isLastSlide ? 0 : currentIndex + 1;
+    setCurrentIndex(newIndex);
+  };
+
+  return (
+    <div className="relative h-56 w-full overflow-hidden group/slider">
+      <div
+        className="w-full h-full rounded-t-2xl bg-cover bg-center transition-all duration-500 ease-in-out"
+        style={{ backgroundImage: `url(${images[currentIndex]})` }}
+      ></div>
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={goToPrevious}
+            className="absolute top-1/2 left-2 -translate-y-1/2 bg-black/30 text-white p-1 rounded-full opacity-0 group-hover/slider:opacity-100 transition-opacity z-10"
+          >
+            <ChevronLeftIcon className="w-6 h-6" />
+          </button>
+          <button
+            onClick={goToNext}
+            className="absolute top-1/2 right-2 -translate-y-1/2 bg-black/30 text-white p-1 rounded-full opacity-0 group-hover/slider:opacity-100 transition-opacity z-10"
+          >
+            <ChevronRightIcon className="w-6 h-6" />
+          </button>
+        </>
+      )}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
+        {images.map((_, index) => (
+          <div
+            key={index}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              currentIndex === index ? 'bg-white' : 'bg-white/50'
+            }`}
+          ></div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const FloatingIcon = ({ icon: Icon, className, delay = 0 }) => (
   <div 
@@ -37,7 +102,6 @@ const FloatingIcon = ({ icon: Icon, className, delay = 0 }) => (
     <Icon className="w-8 h-8 text-indigo-400" />
   </div>
 );
-
 
 const TypewriterText = ({ text, delay = 0 }) => {
   const [displayText, setDisplayText] = useState('');
@@ -133,6 +197,7 @@ const Portfolio = () => {
   };
 
   const calculateDuration = (start, end) => {
+    if (!start || !end) return 'N/A';
     const duration = Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
     return duration > 0 ? `${duration} days` : '1 day';
   };
@@ -169,11 +234,11 @@ const Portfolio = () => {
         <div className={`relative z-10 text-center px-4 transition-all duration-2000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <h1 className="text-6xl md:text-8xl font-bold text-white mb-6 leading-tight">
             <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              <TypewriterText text="Innovate" delay={500} />
+              <TypewriterText text="Innovate" delay={150} />
             </span>
           </h1>
           <h2 className="text-4xl md:text-6xl font-semibold text-gray-300 mb-8">
-            <TypewriterText text="Create. Transform." delay={2000} />
+            <TypewriterText text="Create. Transform." delay={1500} />
           </h2>
           <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-4xl mx-auto leading-relaxed">
             We craft digital experiences that push boundaries and redefine possibilities. 
@@ -269,10 +334,11 @@ const Portfolio = () => {
               completedProjects.map((project, index) => (
                 <div
                   key={project._id}
-                  className="group bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:scale-105"
+                  className="group bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:scale-105 flex flex-col"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="p-6">
+                  <ImageSlider images={project.imageUrls} />
+                  <div className="p-6 flex flex-col flex-grow">
                     <div className="flex items-start justify-between mb-4">
                       <h3 className="text-xl font-semibold text-white group-hover:text-blue-400 transition-colors duration-300">
                         {project.projectTitle}
@@ -283,11 +349,25 @@ const Portfolio = () => {
                         ))}
                       </div>
                     </div>
-                    <p className="text-gray-300 text-sm mb-6 line-clamp-3 group-hover:text-gray-200 transition-colors duration-300">
+                    <p className="text-gray-300 text-sm mb-4 line-clamp-3 group-hover:text-gray-200 transition-colors duration-300">
                       {project.projectDetails}
                     </p>
+
+                    {/* Tech Stack */}
+                    {project.techStack && project.techStack.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-semibold text-gray-400 mb-2">Tech Stack</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {project.techStack.map((tech, i) => (
+                            <span key={i} className="px-2 py-1 bg-gray-600/50 text-indigo-300 text-xs font-medium rounded-full">
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
-                    <div className="space-y-3">
+                    <div className="space-y-3 mt-auto">
                       <div className="flex items-center text-sm text-gray-400">
                         <CheckBadgeIcon className="h-5 w-5 text-green-400 mr-2 flex-shrink-0" />
                         <span>Completed {new Date(project.completedAt).toLocaleDateString()}</span>
