@@ -4,6 +4,9 @@ import Navbar from './components/Navbar';
 import Portfolio from './components/Portfolio';
 import ProjectForm from './components/ProjectForm';
 import ProjectManager from './components/ProjectManager';
+import AboutUs from './components/AboutUs';
+import ContactUs from './components/ContactUs';
+import Blogs from './components/Blogs';
 import './App.css';
 
 function App() {
@@ -14,6 +17,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Portfolio />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/blogs" element={<Blogs />} />
+          <Route path="/contact" element={<ContactUs />} />
           <Route path="/submit-project" element={<ProjectForm />} />
           <Route path="/admin" element={<ProjectManager />} />
         </Routes>

@@ -1,75 +1,106 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/solid';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const menuRef = useRef(null);
+
+  // Close menu on route change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const navLinkClasses = ({ isActive }) =>
-    `px-3 py-2 rounded-md text-sm font-medium transition-colors duration-300 ${
+    `block px-4 py-3 rounded-md text-base font-medium transition-colors duration-300 ${
       isActive
         ? 'bg-indigo-600 text-white'
         : 'text-gray-300 hover:bg-gray-700 hover:text-white'
     }`;
 
+  const navLinks = [
+    { to: "/portfolio", text: "Our Work" },
+    { to: "/about", text: "About Us" },
+    { to: "/blogs", text: "Blogs" },
+    { to: "/contact", text: "Contact" },
+    { to: "/submit-project", text: "Submit Project" },
+  ];
+
   return (
     <nav className="bg-gray-900 shadow-lg sticky top-0 z-50 border-b border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <NavLink to="/" className="flex-shrink-0 text-white font-bold text-xl">
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <NavLink to="/" className="text-white font-bold text-xl">
               <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
                 ProjectHub
               </span>
             </NavLink>
           </div>
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              <NavLink to="/portfolio" className={navLinkClasses}>
-                Our Work
-              </NavLink>
-              <NavLink to="/submit-project" className={navLinkClasses}>
-                Submit Project
-              </NavLink>
-              <NavLink to="/admin" className={navLinkClasses}>
-                Admin
-              </NavLink>
-            </div>
-          </div>
-          <div className="-mr-2 flex md:hidden">
+
+          {/* Hamburger Menu */}
+          <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              type="button"
-              className="bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-              aria-controls="mobile-menu"
-              aria-expanded="false"
+              className="relative z-50 w-8 h-8 flex flex-col justify-between items-center focus:outline-none"
+              aria-controls="main-menu"
+              aria-expanded={isOpen}
             >
               <span className="sr-only">Open main menu</span>
-              {isOpen ? (
-                <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
-              ) : (
-                <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
-              )}
+              <span
+                className={`block w-full h-0.5 bg-gray-300 transform transition duration-300 ease-in-out ${
+                  isOpen ? 'rotate-45 translate-y-[9px]' : ''
+                }`}
+              ></span>
+              <span
+                className={`block w-full h-0.5 bg-gray-300 transition duration-300 ease-in-out ${
+                  isOpen ? 'opacity-0' : ''
+                }`}
+              ></span>
+              <span
+                className={`block w-full h-0.5 bg-gray-300 transform transition duration-300 ease-in-out ${
+                  isOpen ? '-rotate-45 -translate-y-[9px]' : ''
+                }`}
+              ></span>
             </button>
+
+            {/* Dropdown Menu Panel */}
+            <div
+              id="main-menu"
+              className={`absolute right-0 mt-4 w-64 origin-top-right bg-gray-800/90 backdrop-blur-md border border-gray-700 rounded-2xl shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none transition-all duration-300 ease-in-out ${
+                isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+              }`}
+            >
+              <div className="p-2" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                {navLinks.map((link) => (
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    className={navLinkClasses}
+                    role="menuitem"
+                  >
+                    {link.text}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      {isOpen && (
-        <div className="md:hidden" id="mobile-menu">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-800 border-t border-gray-700">
-            <NavLink to="/portfolio" className={navLinkClasses + ' block'}>
-              Our Work
-            </NavLink>
-            <NavLink to="/submit-project" className={navLinkClasses + ' block'}>
-              Submit Project
-            </NavLink>
-            <NavLink to="/admin" className={navLinkClasses + ' block'}>
-              Admin
-            </NavLink>
-          </div>
-        </div>
-      )}
     </nav>
   );
 };

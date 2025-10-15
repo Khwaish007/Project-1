@@ -188,16 +188,6 @@ const StatsCard = ({ name, count, icon: Icon, color, trend }) => (
             <p className="text-3xl font-bold text-white">{count}</p>
           </div>
         </div>
-        
-        {trend && (
-          <div className="text-right">
-            <div className="flex items-center text-green-400 text-sm">
-              <span>+{trend}%</span>
-              <ChartBarIcon className="w-4 h-4 ml-1" />
-            </div>
-            <p className="text-xs text-gray-500">vs last month</p>
-          </div>
-        )}
       </div>
     </div>
     
@@ -699,45 +689,60 @@ const ProjectManager = () => {
               count={getStatusCount('pending')}
               icon={ClockIcon}
               color="from-yellow-500 to-orange-500"
-              trend={12}
             />
             <StatsCard
               name="Approved"
               count={getStatusCount('approved')}
               icon={CheckCircleIcon}
               color="from-blue-500 to-indigo-500"
-              trend={8}
             />
             <StatsCard
               name="Completed"
               count={getStatusCount('completed')}
               icon={SparklesIcon}
               color="from-green-500 to-emerald-500"
-              trend={25}
             />
             <StatsCard
               name="Total Projects"
               count={projects.length}
               icon={BellIcon}
               color="from-purple-500 to-pink-500"
-              trend={15}
             />
           </div>
 
           {/* Filter Section */}
-          <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 mb-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-white">Project Management</h2>
-              <div className="flex items-center space-x-4">
-                <select
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="bg-gray-700/50 border border-gray-600/50 text-white rounded-xl px-4 py-2 focus:border-indigo-400 focus:ring-0 transition-all duration-300"
-                >
-                  <option value="all">All Projects ({projects.length})</option>
-                  <option value="pending">Pending ({getStatusCount('pending')})</option>
-                  <option value="approved">Approved ({getStatusCount('approved')})</option>
-                  <option value="completed">Completed ({getStatusCount('completed')})</option>
-                </select>
+          <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 sm:p-6 mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <h2 className="text-xl font-semibold text-white flex-shrink-0">Project Management</h2>
+              <div className="w-full sm:w-auto bg-gray-900/50 p-1.5 rounded-full flex items-center space-x-2">
+                {[
+                  { value: 'all', label: 'All', count: projects.length },
+                  { value: 'pending', label: 'Pending', count: getStatusCount('pending') },
+                  { value: 'approved', label: 'Approved', count: getStatusCount('approved') },
+                  { value: 'completed', label: 'Completed', count: getStatusCount('completed') },
+                ].map((filter) => (
+                  <button
+                    key={filter.value}
+                    onClick={() => setSelectedStatus(filter.value)}
+                    className={`relative w-full sm:w-auto text-center px-4 py-2 text-sm font-semibold rounded-full transition-all duration-300 focus:outline-none ${
+                      selectedStatus === filter.value
+                        ? 'text-white'
+                        : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
+                    }`}
+                  >
+                    {selectedStatus === filter.value && (
+                      <span className="absolute inset-0 bg-indigo-600 rounded-full -z-10" />
+                    )}
+                    <span className="relative z-10 flex items-center justify-center">
+                      {filter.label}
+                      <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded-full ${
+                        selectedStatus === filter.value ? 'bg-indigo-400/50 text-white' : 'bg-gray-700 text-gray-200'
+                      }`}>
+                        {filter.count}
+                      </span>
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -777,32 +782,6 @@ const ProjectManager = () => {
             )}
           </div>
 
-          {/* Footer Stats */}
-          <div className="mt-12 bg-gray-800/20 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-              <div>
-                <div className="flex items-center justify-center mb-2">
-                  <StarIcon className="w-6 h-6 text-yellow-400 mr-2" />
-                  <span className="text-2xl font-bold text-white">4.9</span>
-                </div>
-                <p className="text-gray-400 text-sm">Average Rating</p>
-              </div>
-              <div>
-                <div className="flex items-center justify-center mb-2">
-                  <RocketLaunchIcon className="w-6 h-6 text-blue-400 mr-2" />
-                  <span className="text-2xl font-bold text-white">24h</span>
-                </div>
-                <p className="text-gray-400 text-sm">Response Time</p>
-              </div>
-              <div>
-                <div className="flex items-center justify-center mb-2">
-                  <TrophyIcon className="w-6 h-6 text-green-400 mr-2" />
-                  <span className="text-2xl font-bold text-white">98%</span>
-                </div>
-                <p className="text-gray-400 text-sm">Success Rate</p>
-              </div>
-            </div>
-          </div>
         </main>
       </div>
 
