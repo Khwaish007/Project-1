@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import ProjectDetailModal from './ProjectDetailModal';
+
 import { 
   BriefcaseIcon, 
   CheckBadgeIcon, 
-  ClockIcon, 
   CodeBracketIcon,
   CpuChipIcon,
   DevicePhoneMobileIcon,
   GlobeAltIcon,
   RocketLaunchIcon,
   SparklesIcon,
-  StarIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline';
 
 const PortfolioSkeleton = () => (
@@ -31,7 +32,6 @@ const PortfolioSkeleton = () => (
   </div>
 );
 
-// Image Slider Component
 const ImageSlider = ({ images }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -43,13 +43,15 @@ const ImageSlider = ({ images }) => {
     );
   }
 
-  const goToPrevious = () => {
+  const goToPrevious = (e) => {
+    e.stopPropagation();
     const isFirstSlide = currentIndex === 0;
     const newIndex = isFirstSlide ? images.length - 1 : currentIndex - 1;
     setCurrentIndex(newIndex);
   };
 
-  const goToNext = () => {
+  const goToNext = (e) => {
+    e.stopPropagation();
     const isLastSlide = currentIndex === images.length - 1;
     const newIndex = isLastSlide ? 0 : currentIndex + 1;
     setCurrentIndex(newIndex);
@@ -91,18 +93,6 @@ const ImageSlider = ({ images }) => {
   );
 };
 
-const FloatingIcon = ({ icon: Icon, className, delay = 0 }) => (
-  <div 
-    className={`absolute ${className} animate-bounce opacity-30`}
-    style={{ 
-      animationDelay: `${delay}s`,
-      animationDuration: '3s'
-    }}
-  >
-    <Icon className="w-8 h-8 text-indigo-400" />
-  </div>
-);
-
 const TypewriterText = ({ text, delay = 0 }) => {
   const [displayText, setDisplayText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -128,7 +118,7 @@ const TypewriterText = ({ text, delay = 0 }) => {
 
 const ParticleBackground = () => {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
       {[...Array(50)].map((_, i) => (
         <div
           key={i}
@@ -175,6 +165,7 @@ const Portfolio = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isVisible, setIsVisible] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
   const projectsSectionRef = useRef(null);
 
   useEffect(() => {
@@ -196,12 +187,6 @@ const Portfolio = () => {
     }
   };
 
-  const calculateDuration = (start, end) => {
-    if (!start || !end) return 'N/A';
-    const duration = Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24));
-    return duration > 0 ? `${duration} days` : '1 day';
-  };
-
   const scrollToProjects = () => {
     projectsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -216,37 +201,37 @@ const Portfolio = () => {
   return (
     <div className="bg-gray-900 min-h-screen overflow-hidden">
       
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center">
+      {/* Hero Section with Full-Screen Video Background */}
+      <section className="relative h-screen flex items-center justify-center text-center overflow-hidden">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute top-0 left-0 w-full h-full object-cover z-0"
+        >
+          <source src="https://cdn.pixabay.com/video/2025/10/10/309075_large.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <div className="absolute inset-0 bg-black/60 z-10"></div>
         <ParticleBackground />
         
-        {/* Floating Icons */}
-        <FloatingIcon icon={RocketLaunchIcon} className="top-20 left-10" delay={0} />
-        <FloatingIcon icon={SparklesIcon} className="top-32 right-20" delay={1} />
-        <FloatingIcon icon={CodeBracketIcon} className="bottom-40 left-20" delay={2} />
-        <FloatingIcon icon={CpuChipIcon} className="bottom-20 right-10" delay={0.5} />
-        
-        {/* Gradient Orbs */}
-        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
-
-        <div className={`relative z-10 text-center px-4 transition-all duration-2000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <h1 className="text-6xl md:text-8xl font-bold text-white mb-6 leading-tight">
+        <div className={`relative z-20 transition-all duration-1000 px-4 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 leading-tight">
             <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
               <TypewriterText text="Innovate" delay={150} />
             </span>
           </h1>
-          <h2 className="text-4xl md:text-6xl font-semibold text-gray-300 mb-8">
-            <TypewriterText text="Create. Transform." delay={1500} />
+          <h2 className="text-3xl md:text-5xl font-semibold text-gray-300 mb-8">
+            <TypewriterText text="Create. Transform." delay={150} />
           </h2>
+          
           <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-4xl mx-auto leading-relaxed">
             We craft digital experiences that push boundaries and redefine possibilities. 
             From concept to reality, we bring your vision to life.
           </p>
           
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Link
               to="/submit-project"
               className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-full overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl"
@@ -261,20 +246,11 @@ const Portfolio = () => {
               View Our Work
             </button>
           </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto">
-            <StatsCounter end={50} label="Projects" />
-            <StatsCounter end={25} label="Clients" />
-            <StatsCounter end={100} label="Success Rate" />
-            <StatsCounter end={3} label="Years" />
-          </div>
         </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse"></div>
+        
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce z-20">
+          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center p-1">
+            <div className="w-1 h-3 bg-white rounded-full mt-1 animate-pulse"></div>
           </div>
         </div>
       </section>
@@ -334,61 +310,34 @@ const Portfolio = () => {
               completedProjects.map((project, index) => (
                 <div
                   key={project._id}
-                  className="group bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:scale-105 flex flex-col"
+                  className="group bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:scale-105 flex flex-col cursor-pointer"
                   style={{ animationDelay: `${index * 100}ms` }}
+                  onClick={() => setSelectedProject(project)}
                 >
-                  <ImageSlider images={project.imageUrls} />
-                  <div className="p-6 flex flex-col flex-grow">
-                    <div className="flex items-start justify-between mb-4">
-                      <h3 className="text-xl font-semibold text-white group-hover:text-blue-400 transition-colors duration-300">
-                        {project.projectTitle}
-                      </h3>
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <StarIcon key={i} className="w-4 h-4 text-yellow-400 fill-current" />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-gray-300 text-sm mb-4 line-clamp-3 group-hover:text-gray-200 transition-colors duration-300">
-                      {project.projectDetails}
-                    </p>
-
-                    {/* Tech Stack */}
-                    {project.techStack && project.techStack.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-gray-400 mb-2">Tech Stack</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {project.techStack.map((tech, i) => (
-                            <span key={i} className="px-2 py-1 bg-gray-600/50 text-indigo-300 text-xs font-medium rounded-full">
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-3 mt-auto">
-                      <div className="flex items-center text-sm text-gray-400">
-                        <CheckBadgeIcon className="h-5 w-5 text-green-400 mr-2 flex-shrink-0" />
-                        <span>Completed {new Date(project.completedAt).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-400">
-                        <ClockIcon className="h-5 w-5 text-blue-400 mr-2 flex-shrink-0" />
-                        <span>Duration: {calculateDuration(project.submittedAt, project.completedAt)}</span>
-                      </div>
+                  <div className="relative">
+                    <ImageSlider images={project.imageUrls} />
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <EyeIcon className="w-12 h-12 text-white" />
                     </div>
                   </div>
-                  
-                  <div className="bg-gray-600/30 px-6 py-4 border-t border-gray-600/30">
-                    <p className="text-sm font-medium text-gray-300">
-                      Client: <span className="text-white">{project.name}</span>
+                  <div className="p-6 flex flex-col flex-grow">
+                    <h3 className="text-xl font-semibold text-white group-hover:text-blue-400 transition-colors duration-300">
+                      {project.projectTitle}
+                    </h3>
+                    <p className="text-gray-400 text-sm mt-2">
+                      Client: <span className="text-white font-medium">{project.name}</span>
                     </p>
+                    <div className="mt-auto pt-4">
+                       <div className="flex items-center text-sm text-green-400">
+                        <CheckBadgeIcon className="h-5 w-5 mr-2 flex-shrink-0" />
+                        <span>Completed {new Date(project.completedAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))
             )}
           </div>
-
           <div className="text-center mt-16">
             <Link
               to="/submit-project"
@@ -400,6 +349,25 @@ const Portfolio = () => {
           </div>
         </div>
       </section>
+
+      {/* Footer Section */}
+      <footer className="bg-gray-900 border-t border-gray-800/50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
+          <p className="mb-2">
+            MADE IN CANADA &bull; <a href="#" className="hover:text-indigo-400 transition-colors duration-300">Privacy Policy</a> &bull; Copyright 2025 514085 BC LTD DBA Studiothink® CREATIVE
+          </p>
+          <p className="text-xs text-gray-600">
+            All rights reserved.
+          </p>
+        </div>
+      </footer>
+
+      {selectedProject && (
+        <ProjectDetailModal 
+          project={selectedProject} 
+          onClose={() => setSelectedProject(null)} 
+        />
+      )}
     </div>
   );
 };

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const ProjectSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true },
-  phoneNumber: { type: String },
+  phoneNumber: { type: String, required: true },
   companyName: { type: String },
   projectTitle: { type: String, required: true },
   projectDetails: { type: String, required: true },
@@ -14,7 +14,9 @@ const ProjectSchema = new mongoose.Schema({
   approvedAt: { type: Date },
   completedAt: { type: Date },
   imageUrls: [{ type: String }],
-  techStack: [{ type: String }], // Add this line
+  techStack: [{ type: String }], 
+  videoUrl: { type: String }, 
+
 });
 
 module.exports = mongoose.model('Project', ProjectSchema);

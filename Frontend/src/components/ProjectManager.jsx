@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import ProjectDetailModal from './ProjectDetailModal'; // Import the modal
+
 import { 
   LockClosedIcon, 
   ArrowRightOnRectangleIcon, 
@@ -23,7 +25,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   BriefcaseIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  VideoCameraIcon
 } from '@heroicons/react/24/outline';
 
 // Enhanced Loading Animation
@@ -259,11 +262,12 @@ const ImageSliderAdmin = ({ images }) => {
 };
 
 // Enhanced Project Card
-const ProjectCard = ({ project, updateProjectStatus }) => {
+const ProjectCard = ({ project, updateProjectStatus, onSelectProject }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [imageUrls, setImageUrls] = useState(project.imageUrls || []);
   const [techStack, setTechStack] = useState(project.techStack || []);
+  const [videoUrl, setVideoUrl] = useState(project.videoUrl || '');
 
   const handleImageUrlChange = (index, value) => {
     const newImageUrls = [...imageUrls];
@@ -298,7 +302,7 @@ const ProjectCard = ({ project, updateProjectStatus }) => {
   const saveChanges = () => {
     const filteredUrls = imageUrls.filter(url => url.trim() !== '');
     const filteredTech = techStack.filter(tech => tech.trim() !== '');
-    updateProjectStatus(project._id, project.status, { imageUrls: filteredUrls, techStack: filteredTech });
+    updateProjectStatus(project._id, project.status, { imageUrls: filteredUrls, techStack: filteredTech,videoUrl: videoUrl });
     setIsEditing(false);
   };
   
@@ -366,6 +370,18 @@ const ProjectCard = ({ project, updateProjectStatus }) => {
         {/* Image & Tech Stack Display/Edit Section */}
         {isEditing ? (
           <div className="mb-4 p-4 bg-gray-700/50 rounded-lg space-y-6">
+            {/* Video URL Editor */}
+            <div>
+              <h4 className="text-white font-semibold mb-3">Edit Video URL</h4>
+              <input
+                type="text"
+                placeholder="YouTube or Vimeo URL"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm"
+              />
+            </div>
+
             {/* Image URL Editor */}
             <div>
               <h4 className="text-white font-semibold mb-3">Edit Image URLs</h4>
@@ -435,10 +451,16 @@ const ProjectCard = ({ project, updateProjectStatus }) => {
                 </div>
               </div>
             )}
-            <button onClick={() => setIsEditing(true)} className="flex items-center text-indigo-400 text-sm hover:text-indigo-300">
-              <WrenchScrewdriverIcon className="w-4 h-4 mr-1" />
-              Edit Details
-            </button>
+            <div className="flex items-center space-x-4">
+              <button onClick={() => setIsEditing(true)} className="flex items-center text-indigo-400 text-sm hover:text-indigo-300">
+                <WrenchScrewdriverIcon className="w-4 h-4 mr-1" />
+                Edit Details
+              </button>
+              <button onClick={() => onSelectProject(project)} className="flex items-center text-green-400 text-sm hover:text-green-300">
+                <EyeIcon className="w-4 h-4 mr-1" />
+                Preview
+              </button>
+            </div>
           </div>
         )}
 
@@ -525,6 +547,8 @@ const ProjectManager = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [isVisible, setIsVisible] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null); // State for modal
+
 
   const ADMIN_PASSWORD = 'admin123';
 
@@ -601,7 +625,11 @@ const ProjectManager = () => {
       } else {
         setProjects(projects.map(p => {
           if (p._id === projectId) {
-            return { ...p, ...payload };
+            const updatedProject = { ...p, ...payload };
+            if (data?.imageUrls) updatedProject.imageUrls = data.imageUrls;
+            if (data?.techStack) updatedProject.techStack = data.techStack;
+            if (data?.videoUrl !== undefined) updatedProject.videoUrl = data.videoUrl;
+            return updatedProject;
           }
           return p;
         }));
@@ -743,7 +771,7 @@ const ProjectManager = () => {
                   className="animate-fadeIn"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <ProjectCard project={project} updateProjectStatus={updateProjectStatus} />
+                  <ProjectCard project={project} updateProjectStatus={updateProjectStatus} onSelectProject={setSelectedProject}/>
                 </div>
               ))
             )}
@@ -777,6 +805,13 @@ const ProjectManager = () => {
           </div>
         </main>
       </div>
+
+      {selectedProject && (
+        <ProjectDetailModal 
+          project={selectedProject} 
+          onClose={() => setSelectedProject(null)} 
+        />
+      )}
     </div>
   );
 };

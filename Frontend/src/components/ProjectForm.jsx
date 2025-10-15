@@ -238,7 +238,8 @@ const ProjectForm = () => {
     projectDetails: '',
     startDate: '',
     endDate: '',
-    imageUrls: [''], // Initialize with one empty image URL field
+    imageUrls: [''], 
+    budget: '',
   });
   const [status, setStatus] = useState({ message: '', error: '', loading: false });
   const [isVisible, setIsVisible] = useState(false);
@@ -258,6 +259,7 @@ const ProjectForm = () => {
       startDate: '',
       endDate: '',
       imageUrls: [''],
+      budget: '',
     });
     setStatus({ message: '', error: '', loading: false });
   };
@@ -368,9 +370,10 @@ const ProjectForm = () => {
                   <FloatingInput
                     type="tel"
                     name="phoneNumber"
-                    placeholder="Phone Number (Optional)"
+                    placeholder="Phone Number"
                     value={formData.phoneNumber}
                     onChange={handleChange}
+                    required
                   />
                 </div>
 
@@ -393,6 +396,35 @@ const ProjectForm = () => {
                   rows={4}
                   required
                 />
+
+                {/* Budget Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-4">
+                    Estimated Budget (USD)
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {['$1k - $5k', '$5k - $10k', '$10k - $15k', '$15k+'].map((range) => (
+                      <div key={range}>
+                        <input
+                          type="radio"
+                          id={range}
+                          name="budget"
+                          value={range}
+                          checked={formData.budget === range}
+                          onChange={handleChange}
+                          className="hidden peer"
+                          required
+                        />
+                        <label
+                          htmlFor={range}
+                          className="block text-center cursor-pointer p-4 border-2 border-gray-700/50 rounded-2xl text-gray-300 font-semibold transition-all duration-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 peer-checked:text-white hover:border-indigo-500/50"
+                        >
+                          {range}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Date Range Section */}
                 <div className="grid md:grid-cols-2 gap-6">
