@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ProjectDetailModal from './ProjectDetailModal'; // Import the modal
+import BlogEditor from './BlogEditor'; // Import the new editor
 
 import { 
   LockClosedIcon, 
@@ -28,6 +29,12 @@ import {
   WrenchScrewdriverIcon,
   VideoCameraIcon
 } from '@heroicons/react/24/outline';
+
+import { 
+  FilePlus2Icon, // Add this
+  EditIcon, // Add this
+  BookOpenIcon // Add this
+} from 'lucide-react';
 
 // Enhanced Loading Animation
 const DashboardLoader = () => (
@@ -538,7 +545,10 @@ const ProjectManager = () => {
   const [password, setPassword] = useState('');
   const [isVisible, setIsVisible] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null); // State for modal
-
+  const [activeTab, setActiveTab] = useState('projects'); // New state for tabs
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
 
   const ADMIN_PASSWORD = 'admin123';
 
@@ -564,6 +574,60 @@ const ProjectManager = () => {
       setFilteredProjects(projects.filter(p => p.status === selectedStatus));
     }
   }, [projects, selectedStatus]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProjects();
+      fetchBlogPosts(); // Fetch blogs when authenticated
+    }
+  }, [isAuthenticated]);
+
+  const fetchBlogPosts = async () => {
+    try {
+      const response = await axios.get('http://localhost:5001/api/blogs/all');
+      setBlogPosts(response.data);
+    } catch (err) {
+      setError('Failed to fetch blog posts');
+    }
+  };
+
+  const handleSavePost = async (postData) => {
+    try {
+      if (postData._id) {
+        // Update existing post
+        await axios.put(`http://localhost:5001/api/blogs/${postData._id}`, postData);
+      } else {
+        // Create new post
+        await axios.post('http://localhost:5001/api/blogs', postData);
+      }
+      fetchBlogPosts(); // Refresh list
+      setIsEditorOpen(false);
+      setEditingPost(null);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save post.');
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (window.confirm('Are you sure you want to delete this post? This cannot be undone.')) {
+      try {
+        await axios.delete(`http://localhost:5001/api/blogs/${postId}`);
+        fetchBlogPosts(); // Refresh list
+      } catch (err) {
+        setError('Failed to delete post.');
+      }
+    }
+  };
+
+  const openEditorForNewPost = () => {
+    setEditingPost(null);
+    setIsEditorOpen(true);
+  };
+
+  const openEditorForExistingPost = (post) => {
+    setEditingPost(post);
+    setIsEditorOpen(true);
+  };
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
@@ -682,105 +746,159 @@ const ProjectManager = () => {
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatsCard
-              name="Pending"
-              count={getStatusCount('pending')}
-              icon={ClockIcon}
-              color="from-yellow-500 to-orange-500"
-            />
-            <StatsCard
-              name="Approved"
-              count={getStatusCount('approved')}
-              icon={CheckCircleIcon}
-              color="from-blue-500 to-indigo-500"
-            />
-            <StatsCard
-              name="Completed"
-              count={getStatusCount('completed')}
-              icon={SparklesIcon}
-              color="from-green-500 to-emerald-500"
-            />
-            <StatsCard
-              name="Total Projects"
-              count={projects.length}
-              icon={BellIcon}
-              color="from-purple-500 to-pink-500"
-            />
+          {/* Tab Navigation */}
+          <div className="mb-8 flex items-center border-b border-gray-700">
+            <button onClick={() => setActiveTab('projects')} className={`flex items-center gap-2 px-4 py-3 font-medium ${activeTab === 'projects' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400 hover:text-white'}`}>
+              <BriefcaseIcon className="w-5 h-5" /> Project Management
+            </button>
+            <button onClick={() => setActiveTab('blog')} className={`flex items-center gap-2 px-4 py-3 font-medium ${activeTab === 'blog' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400 hover:text-white'}`}>
+              <BookOpenIcon className="w-5 h-5" /> Blog Management
+            </button>
           </div>
 
-          {/* Filter Section */}
-          <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 sm:p-6 mb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold text-white flex-shrink-0">Project Management</h2>
-              <div className="w-full sm:w-auto bg-gray-900/50 p-1.5 rounded-full flex items-center space-x-2">
-                {[
-                  { value: 'all', label: 'All', count: projects.length },
-                  { value: 'pending', label: 'Pending', count: getStatusCount('pending') },
-                  { value: 'approved', label: 'Approved', count: getStatusCount('approved') },
-                  { value: 'completed', label: 'Completed', count: getStatusCount('completed') },
-                ].map((filter) => (
-                  <button
-                    key={filter.value}
-                    onClick={() => setSelectedStatus(filter.value)}
-                    className={`relative w-full sm:w-auto text-center px-4 py-2 text-sm font-semibold rounded-full transition-all duration-300 focus:outline-none ${
-                      selectedStatus === filter.value
-                        ? 'text-white'
-                        : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
-                    }`}
-                  >
-                    {selectedStatus === filter.value && (
-                      <span className="absolute inset-0 bg-indigo-600 rounded-full -z-10" />
-                    )}
-                    <span className="relative z-10 flex items-center justify-center">
-                      {filter.label}
-                      <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded-full ${
-                        selectedStatus === filter.value ? 'bg-indigo-400/50 text-white' : 'bg-gray-700 text-gray-200'
-                      }`}>
-                        {filter.count}
-                      </span>
-                    </span>
-                  </button>
-                ))}
+          {activeTab === 'projects' && (
+            <>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <StatsCard
+                  name="Pending"
+                  count={getStatusCount('pending')}
+                  icon={ClockIcon}
+                  color="from-yellow-500 to-orange-500"
+                />
+                <StatsCard
+                  name="Approved"
+                  count={getStatusCount('approved')}
+                  icon={CheckCircleIcon}
+                  color="from-blue-500 to-indigo-500"
+                />
+                <StatsCard
+                  name="Completed"
+                  count={getStatusCount('completed')}
+                  icon={SparklesIcon}
+                  color="from-green-500 to-emerald-500"
+                />
+                <StatsCard
+                  name="Total Projects"
+                  count={projects.length}
+                  icon={BellIcon}
+                  color="from-purple-500 to-pink-500"
+                />
               </div>
-            </div>
-          </div>
 
-          {/* Error Display */}
-          {error && (
-            <div className="bg-red-500/20 border border-red-500/50 rounded-2xl p-4 mb-8 text-center animate-pulse">
-              <p className="text-red-300 font-medium">{error}</p>
+              {/* Filter Section */}
+              <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 sm:p-6 mb-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <h2 className="text-xl font-semibold text-white flex-shrink-0">Project Management</h2>
+                  <div className="w-full sm:w-auto bg-gray-900/50 p-1.5 rounded-full flex items-center space-x-2">
+                    {[
+                      { value: 'all', label: 'All', count: projects.length },
+                      { value: 'pending', label: 'Pending', count: getStatusCount('pending') },
+                      { value: 'approved', label: 'Approved', count: getStatusCount('approved') },
+                      { value: 'completed', label: 'Completed', count: getStatusCount('completed') },
+                    ].map((filter) => (
+                      <button
+                        key={filter.value}
+                        onClick={() => setSelectedStatus(filter.value)}
+                        className={`relative w-full sm:w-auto text-center px-4 py-2 text-sm font-semibold rounded-full transition-all duration-300 focus:outline-none ${
+                          selectedStatus === filter.value
+                            ? 'text-white'
+                            : 'text-gray-400 hover:bg-gray-700/50 hover:text-white'
+                        }`}
+                      >
+                        {selectedStatus === filter.value && (
+                          <span className="absolute inset-0 bg-indigo-600 rounded-full -z-10" />
+                        )}
+                        <span className="relative z-10 flex items-center justify-center">
+                          {filter.label}
+                          <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded-full ${
+                            selectedStatus === filter.value ? 'bg-indigo-400/50 text-white' : 'bg-gray-700 text-gray-200'
+                          }`}>
+                            {filter.count}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="bg-red-500/20 border border-red-500/50 rounded-2xl p-4 mb-8 text-center animate-pulse">
+                  <p className="text-red-300 font-medium">{error}</p>
+                </div>
+              )}
+
+              {/* Projects Grid */}
+              <div className="grid gap-6 lg:grid-cols-2">
+                {filteredProjects.length === 0 ? (
+                  <div className="lg:col-span-2 text-center py-16 px-4 bg-gray-800/20 rounded-2xl border border-gray-700/30">
+                    <DocumentTextIcon className="mx-auto h-16 w-16 text-gray-500 mb-4" />
+                    <h3 className="text-xl font-medium text-white mb-2">
+                      {selectedStatus === 'all' ? 'No Projects Yet' : `No ${selectedStatus} Projects`}
+                    </h3>
+                    <p className="text-gray-400">
+                      {selectedStatus === 'all' 
+                        ? 'Projects will appear here once clients submit them.' 
+                        : `No projects with ${selectedStatus} status found.`
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  filteredProjects.map((project, index) => (
+                    <div
+                      key={project._id}
+                      className="animate-fadeIn"
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <ProjectCard project={project} updateProjectStatus={updateProjectStatus} onSelectProject={setSelectedProject}/>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+          
+          {activeTab === 'blog' && (
+            <div className="animate-fadeIn">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-semibold text-white">All Blog Posts</h2>
+                <button onClick={openEditorForNewPost} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors">
+                  <FilePlus2Icon className="w-5 h-5" /> Create New Post
+                </button>
+              </div>
+              <div className="bg-gray-800/30 border border-gray-700/50 rounded-2xl overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-800/50">
+                    <tr>
+                      <th className="p-4 text-sm font-semibold text-gray-300">Title</th>
+                      <th className="p-4 text-sm font-semibold text-gray-300">Status</th>
+                      <th className="p-4 text-sm font-semibold text-gray-300">Created At</th>
+                      <th className="p-4 text-sm font-semibold text-gray-300">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {blogPosts.map(post => (
+                      <tr key={post._id} className="border-t border-gray-700/50 hover:bg-gray-700/20">
+                        <td className="p-4 text-white font-medium">{post.title}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${post.status === 'published' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}`}>
+                            {post.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-gray-400">{new Date(post.createdAt).toLocaleDateString()}</td>
+                        <td className="p-4 flex items-center gap-4">
+                          <button onClick={() => openEditorForExistingPost(post)} className="text-blue-400 hover:text-blue-300"><EditIcon className="w-5 h-5" /></button>
+                          <button onClick={() => handleDeletePost(post._id)} className="text-red-400 hover:text-red-300"><TrashIcon className="w-5 h-5" /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
-
-          {/* Projects Grid */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            {filteredProjects.length === 0 ? (
-              <div className="lg:col-span-2 text-center py-16 px-4 bg-gray-800/20 rounded-2xl border border-gray-700/30">
-                <DocumentTextIcon className="mx-auto h-16 w-16 text-gray-500 mb-4" />
-                <h3 className="text-xl font-medium text-white mb-2">
-                  {selectedStatus === 'all' ? 'No Projects Yet' : `No ${selectedStatus} Projects`}
-                </h3>
-                <p className="text-gray-400">
-                  {selectedStatus === 'all' 
-                    ? 'Projects will appear here once clients submit them.' 
-                    : `No projects with ${selectedStatus} status found.`
-                  }
-                </p>
-              </div>
-            ) : (
-              filteredProjects.map((project, index) => (
-                <div
-                  key={project._id}
-                  className="animate-fadeIn"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <ProjectCard project={project} updateProjectStatus={updateProjectStatus} onSelectProject={setSelectedProject}/>
-                </div>
-              ))
-            )}
-          </div>
 
         </main>
       </div>
@@ -789,6 +907,13 @@ const ProjectManager = () => {
         <ProjectDetailModal 
           project={selectedProject} 
           onClose={() => setSelectedProject(null)} 
+        />
+      )}
+      {isEditorOpen && (
+        <BlogEditor 
+          post={editingPost}
+          onSave={handleSavePost}
+          onClose={() => setIsEditorOpen(false)}
         />
       )}
     </div>
