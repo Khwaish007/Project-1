@@ -11,7 +11,6 @@ import {
   DevicePhoneMobileIcon,
   GlobeAltIcon,
   RocketLaunchIcon,
-  SparklesIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   EyeIcon
@@ -135,30 +134,6 @@ const ParticleBackground = () => {
   );
 };
 
-const StatsCounter = ({ end, label, duration = 2000 }) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let startTime;
-    const animate = (currentTime) => {
-      if (!startTime) startTime = currentTime;
-      const progress = Math.min((currentTime - startTime) / duration, 1);
-      setCount(Math.floor(progress * end));
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-    requestAnimationFrame(animate);
-  }, [end, duration]);
-
-  return (
-    <div className="text-center">
-      <div className="text-4xl font-bold text-white mb-2">{count}+</div>
-      <div className="text-gray-300 text-sm uppercase tracking-wider">{label}</div>
-    </div>
-  );
-};
 
 const Portfolio = () => {
   const [completedProjects, setCompletedProjects] = useState([]);
