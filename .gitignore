@@ -81,3 +81,5 @@ temp/
 # Build artifacts
 *.tar.gz
 *.zip
+
+gcs-key.json

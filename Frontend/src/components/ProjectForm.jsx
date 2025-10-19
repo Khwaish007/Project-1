@@ -15,6 +15,9 @@ import {
   XCircleIcon
 } from '@heroicons/react/24/solid';
 
+import FileUpload from './FileUpload'; 
+
+
 // Enhanced Loader with rotating elements
 const FullScreenLoader = () => (
   <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center z-50">
@@ -238,9 +241,10 @@ const ProjectForm = () => {
     projectDetails: '',
     startDate: '',
     endDate: '',
-    imageUrls: [''], 
+    imageUrls: [''], // Single source of truth. Start with one empty input.
     budget: '',
   });
+
   const [status, setStatus] = useState({ message: '', error: '', loading: false });
   const [isVisible, setIsVisible] = useState(false);
 
@@ -250,15 +254,8 @@ const ProjectForm = () => {
 
   const resetForm = () => {
     setFormData({
-      name: '',
-      email: '',
-      phoneNumber: '',
-      companyName: '',
-      projectTitle: '',
-      projectDetails: '',
-      startDate: '',
-      endDate: '',
-      imageUrls: [''],
+      name: '', email: '', phoneNumber: '', companyName: '', projectTitle: '',
+      projectDetails: '', startDate: '', endDate: '', imageUrls: [''],
       budget: '',
     });
     setStatus({ message: '', error: '', loading: false });
@@ -268,30 +265,51 @@ const ProjectForm = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleImageUrlChange = (index, value) => {
-    const newImageUrls = [...formData.imageUrls];
-    newImageUrls[index] = value;
-    setFormData({ ...formData, imageUrls: newImageUrls });
+  // --- Handler for successful file uploads ---
+  const handleImageUpload = (uploadedUrls) => {
+    setFormData(prev => {
+      const existingValidUrls = prev.imageUrls.filter(url => url.trim() !== '');
+      const newImageUrls = [...existingValidUrls, ...uploadedUrls];
+      
+      return {
+        ...prev,
+        imageUrls: newImageUrls.length > 0 ? newImageUrls : ['']
+      };
+    });
   };
 
-  const addImageUrlField = () => {
-    setFormData({ ...formData, imageUrls: [...formData.imageUrls, ''] });
+  // --- Unified logic for manual URL inputs ---
+  const handleManualUrlChange = (index, value) => {
+    const newUrls = [...formData.imageUrls];
+    newUrls[index] = value;
+    setFormData(prev => ({ ...prev, imageUrls: newUrls }));
   };
 
-  const removeImageUrlField = (index) => {
-    const newImageUrls = formData.imageUrls.filter((_, i) => i !== index);
-    setFormData({ ...formData, imageUrls: newImageUrls });
+  const addManualUrlField = () => {
+    setFormData(prev => ({ ...prev, imageUrls: [...prev.imageUrls, ''] }));
+  };
+
+  // --- Unified Image Removal ---
+  const removeImageUrl = (indexToRemove) => {
+    setFormData(prev => {
+      const newUrls = prev.imageUrls.filter((_, index) => index !== indexToRemove);
+      // If the resulting array is empty, add back a single empty input field
+      if (newUrls.length === 0) {
+        return { ...prev, imageUrls: [''] };
+      }
+      return { ...prev, imageUrls: newUrls };
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus({ message: '', error: '', loading: true });
+
     try {
-      // Filter out empty image URLs before submitting
-      const submissionData = {
-        ...formData,
-        imageUrls: formData.imageUrls.filter(url => url.trim() !== ''),
-      };
+      // Filter out any empty strings from the final array before submission
+      const finalImageUrls = formData.imageUrls.filter(url => url.trim() !== '');
+      const submissionData = { ...formData, imageUrls: finalImageUrls };
+      
       await new Promise(resolve => setTimeout(resolve, 2000));
       const res = await axios.post('http://localhost:5001/api/projects', submissionData);
       setStatus({ message: res.data.message, error: '', loading: false });
@@ -344,83 +362,24 @@ const ProjectForm = () => {
                 
                 {/* Personal Information Section */}
                 <div className="grid md:grid-cols-2 gap-6">
-                  <FloatingInput
-                    type="text"
-                    name="name"
-                    placeholder="Your Full Name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                  <FloatingInput
-                    type="email"
-                    name="email"
-                    placeholder="Email Address"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                  />
-                  <FloatingInput
-                    type="text"
-                    name="companyName"
-                    placeholder="Company Name (Optional)"
-                    value={formData.companyName}
-                    onChange={handleChange}
-                  />
-                  <FloatingInput
-                    type="tel"
-                    name="phoneNumber"
-                    placeholder="Phone Number"
-                    value={formData.phoneNumber}
-                    onChange={handleChange}
-                    required
-                  />
+                  <FloatingInput type="text" name="name" placeholder="Your Full Name" value={formData.name} onChange={handleChange} required />
+                  <FloatingInput type="email" name="email" placeholder="Email Address" value={formData.email} onChange={handleChange} required />
+                  <FloatingInput type="text" name="companyName" placeholder="Company Name (Optional)" value={formData.companyName} onChange={handleChange} />
+                  <FloatingInput type="tel" name="phoneNumber" placeholder="Phone Number" value={formData.phoneNumber} onChange={handleChange} required />
                 </div>
 
                 {/* Project Information */}
-                <FloatingInput
-                  type="text"
-                  name="projectTitle"
-                  placeholder="Project Title"
-                  value={formData.projectTitle}
-                  onChange={handleChange}
-                  required
-                />
-
-                <FloatingInput
-                  type="textarea"
-                  name="projectDetails"
-                  placeholder="Tell us about your project vision..."
-                  value={formData.projectDetails}
-                  onChange={handleChange}
-                  rows={4}
-                  required
-                />
+                <FloatingInput type="text" name="projectTitle" placeholder="Project Title" value={formData.projectTitle} onChange={handleChange} required />
+                <FloatingInput type="textarea" name="projectDetails" placeholder="Tell us about your project vision..." value={formData.projectDetails} onChange={handleChange} rows={4} required />
 
                 {/* Budget Section */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-4">
-                    Estimated Budget (USD)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-4">Estimated Budget (USD)</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {['$1k - $5k', '$5k - $10k', '$10k - $15k', '$15k+'].map((range) => (
                       <div key={range}>
-                        <input
-                          type="radio"
-                          id={range}
-                          name="budget"
-                          value={range}
-                          checked={formData.budget === range}
-                          onChange={handleChange}
-                          className="hidden peer"
-                          required
-                        />
-                        <label
-                          htmlFor={range}
-                          className="block text-center cursor-pointer p-4 border-2 border-gray-700/50 rounded-2xl text-gray-300 font-semibold transition-all duration-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 peer-checked:text-white hover:border-indigo-500/50"
-                        >
-                          {range}
-                        </label>
+                        <input type="radio" id={range} name="budget" value={range} checked={formData.budget === range} onChange={handleChange} className="hidden peer" required />
+                        <label htmlFor={range} className="block text-center cursor-pointer p-4 border-2 border-gray-700/50 rounded-2xl text-gray-300 font-semibold transition-all duration-300 peer-checked:border-indigo-500 peer-checked:bg-indigo-500/20 peer-checked:text-white hover:border-indigo-500/50">{range}</label>
                       </div>
                     ))}
                   </div>
@@ -429,66 +388,78 @@ const ProjectForm = () => {
                 {/* Date Range Section */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="relative">
-                    <label className="block text-sm font-medium text-gray-300 mb-3">
-                      Project Start Date
-                    </label>
-                    <input
-                      type="date"
-                      name="startDate"
-                      value={formData.startDate}
-                      onChange={handleChange}
-                      required
-                      className="w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700/50 rounded-2xl px-6 py-4 text-white focus:border-indigo-400 focus:ring-0 transition-all duration-300 focus:shadow-lg focus:shadow-indigo-500/20"
-                      style={{ colorScheme: 'dark' }}
-                    />
+                    <label className="block text-sm font-medium text-gray-300 mb-3">Project Start Date</label>
+                    <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} required className="w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700/50 rounded-2xl px-6 py-4 text-white focus:border-indigo-400 focus:ring-0 transition-all duration-300 focus:shadow-lg focus:shadow-indigo-500/20" style={{ colorScheme: 'dark' }} />
                   </div>
                   <div className="relative">
-                    <label className="block text-sm font-medium text-gray-300 mb-3">
-                      Project End Date
-                    </label>
-                    <input
-                      type="date"
-                      name="endDate"
-                      value={formData.endDate}
-                      onChange={handleChange}
-                      required
-                      className="w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700/50 rounded-2xl px-6 py-4 text-white focus:border-indigo-400 focus:ring-0 transition-all duration-300 focus:shadow-lg focus:shadow-indigo-500/20"
-                      style={{ colorScheme: 'dark' }}
-                    />
+                    <label className="block text-sm font-medium text-gray-300 mb-3">Project End Date</label>
+                    <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} required className="w-full bg-gray-800/50 backdrop-blur-sm border-2 border-gray-700/50 rounded-2xl px-6 py-4 text-white focus:border-indigo-400 focus:ring-0 transition-all duration-300 focus:shadow-lg focus:shadow-indigo-500/20" style={{ colorScheme: 'dark' }} />
                   </div>
                 </div>
 
-                {/* Image URLs Section */}
+                {/* --- FULLY UNIFIED Image Section --- */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
-                    Project Image URLs (Optional)
+                  <label className="block text-sm font-medium text-gray-300 mb-4">
+                    Project Images (Optional)
                   </label>
-                  <div className="space-y-4">
-                    {formData.imageUrls.map((url, index) => (
-                      <div key={index} className="flex items-center space-x-3">
-                        <FloatingInput
-                          type="text"
-                          name={`imageUrl-${index}`}
-                          placeholder={`Image URL ${index + 1}`}
-                          value={url}
-                          onChange={(e) => handleImageUrlChange(index, e.target.value)}
-                        />
-                        {formData.imageUrls.length > 1 && (
-                          <button type="button" onClick={() => removeImageUrlField(index)} className="text-red-400 hover:text-red-300">
-                            <XCircleIcon className="w-7 h-7" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addImageUrlField}
-                      className="flex items-center text-indigo-400 hover:text-indigo-300 transition-colors duration-200"
-                    >
-                      <PlusCircleIcon className="w-6 h-6 mr-2" />
-                      Add Another Image
-                    </button>
+                  
+                  {/* 1. File Upload Component */}
+                  <div className="mb-6">
+                    <FileUpload onUpload={handleImageUpload} multiple={true} />
                   </div>
+
+                  {/* --- Unified Image Previews & Manual Inputs --- */}
+                  {(formData.imageUrls.length > 0) && (
+                    <div className="border-t border-gray-700/50 pt-6 mt-8">
+                      <h4 className="text-sm font-medium text-gray-300 mb-3">Image Previews & Links:</h4>
+                      <div className="space-y-4">
+                        {formData.imageUrls.map((url, index) => {
+                          const isUrlValid = url && (url.startsWith('http') || url.startsWith('https'));
+
+                          // Don't render an empty input if it's not the last one
+                          if (url.trim() === '' && index !== formData.imageUrls.length - 1) {
+                            return null;
+                          }
+                          
+                          return (
+                            <div key={index}>
+                              {isUrlValid ? (
+                                <div className="relative group w-full aspect-video bg-gray-900 rounded-lg">
+                                  <img src={url} alt={`Preview ${index + 1}`} className="rounded-lg object-cover w-full h-full" />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <button type="button" onClick={() => removeImageUrl(index)} className="text-red-400 hover:text-red-300 p-2 bg-black/50 rounded-full">
+                                      <XCircleIcon className="w-6 h-6" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="w-full flex items-center space-x-3">
+                                  <FloatingInput
+                                    type="text"
+                                    name={`manualUrl-${index}`}
+                                    placeholder={`Image URL ${index + 1}`}
+                                    value={url}
+                                    onChange={(e) => handleManualUrlChange(index, e.target.value)}
+                                  />
+                                  <button type="button" onClick={() => removeImageUrl(index)} className="text-red-400 hover:text-red-300">
+                                    <XCircleIcon className="w-7 h-7" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={addManualUrlField}
+                    className="flex items-center text-indigo-400 hover:text-indigo-300 transition-colors duration-200 mt-4"
+                  >
+                    <PlusCircleIcon className="w-6 h-6 mr-2" />
+                    Add Image URL Field
+                  </button>
                 </div>
 
                 {/* Error Message */}

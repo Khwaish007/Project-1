@@ -18,6 +18,8 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/blogs', require('./routes/blogs'));
+app.use('/api', require('./routes/uploads')); 
+
 
 
 // Start server

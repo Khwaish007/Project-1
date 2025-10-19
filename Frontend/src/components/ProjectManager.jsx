@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import ProjectDetailModal from './ProjectDetailModal'; // Import the modal
-import BlogEditor from './BlogEditor'; // Import the new editor
+import ProjectDetailModal from './ProjectDetailModal';
+import BlogEditor from './BlogEditor';
+import FileUpload from './FileUpload'; // Import FileUpload
 
 import { 
   LockClosedIcon, 
@@ -31,10 +32,12 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { 
-  FilePlus2Icon, // Add this
-  EditIcon, // Add this
-  BookOpenIcon // Add this
+  FilePlus2Icon,
+  EditIcon,
+  BookOpenIcon
 } from 'lucide-react';
+
+// ... (DashboardLoader, FloatingElements, LoginForm, StatsCard components remain the same) ...
 
 // Enhanced Loading Animation
 const DashboardLoader = () => (
@@ -207,9 +210,16 @@ const StatsCard = ({ name, count, icon: Icon, color, trend }) => (
   </div>
 );
 
-// Image Slider Component (for Admin)
+// Image Slider Component (for Admin) - CORRECTED
 const ImageSliderAdmin = ({ images }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // *** THIS IS THE FIX ***
+  // Reset index to 0 if the images array changes.
+  // This prevents an out-of-bounds index when filtering projects.
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [images]);
 
   if (!images || images.length === 0) {
     return (
@@ -262,44 +272,68 @@ const ImageSliderAdmin = ({ images }) => {
 const ProjectCard = ({ project, updateProjectStatus, onSelectProject }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [imageUrls, setImageUrls] = useState(project.imageUrls || []);
-  const [techStack, setTechStack] = useState(project.techStack || []);
-  const [videoUrl, setVideoUrl] = useState(project.videoUrl || '');
+  
+  // Local state for editing, initialized from props
+  const [editData, setEditData] = useState({
+    imageUrls: project.imageUrls || [],
+    techStack: project.techStack || [],
+    videoUrl: project.videoUrl || '',
+  });
+
+  // Sync local state if the project prop changes from the parent
+  useEffect(() => {
+    setEditData({
+      imageUrls: project.imageUrls || [],
+      techStack: project.techStack || [],
+      videoUrl: project.videoUrl || '',
+    });
+  }, [project]);
+
+  const handleEditDataChange = (field, value) => {
+    setEditData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleImageUrlChange = (index, value) => {
-    const newImageUrls = [...imageUrls];
+    const newImageUrls = [...editData.imageUrls];
     newImageUrls[index] = value;
-    setImageUrls(newImageUrls);
+    handleEditDataChange('imageUrls', newImageUrls);
   };
 
   const addImageUrlField = () => {
-    setImageUrls([...imageUrls, '']);
+    handleEditDataChange('imageUrls', [...editData.imageUrls, '']);
   };
 
   const removeImageUrlField = (index) => {
-    const newImageUrls = imageUrls.filter((_, i) => i !== index);
-    setImageUrls(newImageUrls);
+    const newImageUrls = editData.imageUrls.filter((_, i) => i !== index);
+    handleEditDataChange('imageUrls', newImageUrls);
+  };
+  
+  const handleImageUpload = (uploadedUrls) => {
+    handleEditDataChange('imageUrls', [...editData.imageUrls.filter(url => url.trim() !== ''), ...uploadedUrls]);
   };
 
   const handleTechStackChange = (index, value) => {
-    const newTechStack = [...techStack];
+    const newTechStack = [...editData.techStack];
     newTechStack[index] = value;
-    setTechStack(newTechStack);
+    handleEditDataChange('techStack', newTechStack);
   };
 
   const addTechStackField = () => {
-    setTechStack([...techStack, '']);
+    handleEditDataChange('techStack', [...editData.techStack, '']);
   };
 
   const removeTechStackField = (index) => {
-    const newTechStack = techStack.filter((_, i) => i !== index);
-    setTechStack(newTechStack);
+    const newTechStack = editData.techStack.filter((_, i) => i !== index);
+    handleEditDataChange('techStack', newTechStack);
   };
 
   const saveChanges = () => {
-    const filteredUrls = imageUrls.filter(url => url.trim() !== '');
-    const filteredTech = techStack.filter(tech => tech.trim() !== '');
-    updateProjectStatus(project._id, project.status, { imageUrls: filteredUrls, techStack: filteredTech,videoUrl: videoUrl });
+    const payload = {
+      imageUrls: editData.imageUrls.filter(url => url.trim() !== ''),
+      techStack: editData.techStack.filter(tech => tech.trim() !== ''),
+      videoUrl: editData.videoUrl,
+    };
+    updateProjectStatus(project._id, project.status, payload);
     setIsEditing(false);
   };
   
@@ -373,8 +407,8 @@ const ProjectCard = ({ project, updateProjectStatus, onSelectProject }) => {
               <input
                 type="text"
                 placeholder="YouTube or Vimeo URL"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
+                value={editData.videoUrl}
+                onChange={(e) => handleEditDataChange('videoUrl', e.target.value)}
                 className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white text-sm"
               />
             </div>
@@ -382,8 +416,11 @@ const ProjectCard = ({ project, updateProjectStatus, onSelectProject }) => {
             {/* Image URL Editor */}
             <div>
               <h4 className="text-white font-semibold mb-3">Edit Image URLs</h4>
+              <div className="mb-4">
+                <FileUpload onUpload={handleImageUpload} multiple={true} />
+              </div>
               <div className="space-y-3">
-                {imageUrls.map((url, index) => (
+                {editData.imageUrls.map((url, index) => (
                   <div key={index} className="flex items-center space-x-2">
                     <input
                       type="text"
@@ -399,7 +436,7 @@ const ProjectCard = ({ project, updateProjectStatus, onSelectProject }) => {
                 ))}
               </div>
               <button onClick={addImageUrlField} className="flex items-center text-indigo-400 text-sm mt-2">
-                <PlusCircleIcon className="w-5 h-5 mr-1" /> Add Image
+                <PlusCircleIcon className="w-5 h-5 mr-1" /> Add Image URL Field
               </button>
             </div>
 
@@ -407,7 +444,7 @@ const ProjectCard = ({ project, updateProjectStatus, onSelectProject }) => {
             <div>
               <h4 className="text-white font-semibold mb-3">Edit Tech Stack</h4>
               <div className="space-y-3">
-                {techStack.map((tech, index) => (
+                {editData.techStack.map((tech, index) => (
                   <div key={index} className="flex items-center space-x-2">
                     <input
                       type="text"
@@ -427,7 +464,10 @@ const ProjectCard = ({ project, updateProjectStatus, onSelectProject }) => {
               </button>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-3 mt-4">
+              <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg">
+                Cancel
+              </button>
               <button onClick={saveChanges} className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg">
                 Save All Changes
               </button>
@@ -564,6 +604,7 @@ const ProjectManager = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchProjects();
+      fetchBlogPosts();
     }
   }, [isAuthenticated]);
 
@@ -574,13 +615,6 @@ const ProjectManager = () => {
       setFilteredProjects(projects.filter(p => p.status === selectedStatus));
     }
   }, [projects, selectedStatus]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProjects();
-      fetchBlogPosts(); // Fetch blogs when authenticated
-    }
-  }, [isAuthenticated]);
 
   const fetchBlogPosts = async () => {
     try {
@@ -594,13 +628,11 @@ const ProjectManager = () => {
   const handleSavePost = async (postData) => {
     try {
       if (postData._id) {
-        // Update existing post
         await axios.put(`http://localhost:5001/api/blogs/${postData._id}`, postData);
       } else {
-        // Create new post
         await axios.post('http://localhost:5001/api/blogs', postData);
       }
-      fetchBlogPosts(); // Refresh list
+      fetchBlogPosts();
       setIsEditorOpen(false);
       setEditingPost(null);
     } catch (err) {
@@ -612,7 +644,7 @@ const ProjectManager = () => {
     if (window.confirm('Are you sure you want to delete this post? This cannot be undone.')) {
       try {
         await axios.delete(`http://localhost:5001/api/blogs/${postId}`);
-        fetchBlogPosts(); // Refresh list
+        fetchBlogPosts();
       } catch (err) {
         setError('Failed to delete post.');
       }
@@ -671,26 +703,25 @@ const ProjectManager = () => {
     const originalProjects = [...projects];
     const payload = { status: newStatus, ...data };
 
+    // Optimistic UI Update
+    if (newStatus === 'declined') {
+      setProjects(projects.filter(p => p._id !== projectId));
+    } else {
+      setProjects(projects.map(p => 
+        p._id === projectId ? { ...p, ...payload } : p
+      ));
+    }
+
     try {
       await axios.put(`http://localhost:5001/api/projects/${projectId}/status`, payload);
-      
+      // If successful, we don't need to do anything as the UI is already updated.
+      // For a declined project, we might want to refetch to be sure.
       if (newStatus === 'declined') {
-        setProjects(projects.filter(p => p._id !== projectId));
-      } else {
-        setProjects(projects.map(p => {
-          if (p._id === projectId) {
-            const updatedProject = { ...p, ...payload };
-            if (data?.imageUrls) updatedProject.imageUrls = data.imageUrls;
-            if (data?.techStack) updatedProject.techStack = data.techStack;
-            if (data?.videoUrl !== undefined) updatedProject.videoUrl = data.videoUrl;
-            return updatedProject;
-          }
-          return p;
-        }));
+        fetchProjects();
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'An error occurred. Changes reverted.');
-      setProjects(originalProjects);
+      setError(err.response?.data?.error || 'An error occurred. Reverting changes.');
+      setProjects(originalProjects); // Revert on error
       setTimeout(() => setError(''), 5000);
     }
   };
