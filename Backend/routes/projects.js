@@ -1,6 +1,10 @@
 const express = require('express');
 const Project = require('../models/Project');
 const nodemailer = require('nodemailer');
+const multer = require('multer');
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const router = express.Router();
 
@@ -13,9 +17,23 @@ const transporter = nodemailer.createTransport({
 });
 
 // ROUTE 1: Submit a new project
-router.post('/', async (req, res) => {
+router.post('/', upload.single('additionalFile'), async (req, res) => {
   try {
-    const project = new Project(req.body);
+    // Destructure text fields from the multipart form body
+    const {
+      name, email, phoneNumber, companyName, projectTitle,
+      projectDetails, startDate, endDate, budget
+    } = req.body;
+
+    // Image URLs are sent as a JSON string, so we need to parse them
+    const imageUrls = JSON.parse(req.body.imageUrls || '[]');
+
+    // Create a new project instance with the parsed data
+    const project = new Project({
+      name, email, phoneNumber, companyName, projectTitle,
+      projectDetails, startDate, endDate, budget, imageUrls
+    });
+    
     await project.save();
 
     const mailToOwner = {
@@ -47,7 +65,7 @@ router.post('/', async (req, res) => {
               <h3 style="font-size: 18px; color: #333; margin-top: 0;">${project.projectTitle}</h3>
               <p style="font-size: 16px; color: #555; margin-bottom: 0;">${project.projectDetails}</p>
             </div>
-            ${req.body.budget ? `<p style="font-size: 16px; color: #555; margin-top: 20px;"><strong>Budget:</strong> ${req.body.budget}</p>` : ''}
+            ${project.budget ? `<p style="font-size: 16px; color: #555; margin-top: 20px;"><strong>Budget:</strong> ${project.budget}</p>` : ''}
             <p style="font-size: 16px; color: #555; margin-top: 20px;"><strong>Timeline:</strong> ${new Date(project.startDate).toLocaleDateString()} to ${new Date(project.endDate).toLocaleDateString()}</p>
 
             <p style="text-align: center; font-size: 14px; color: #777; margin-top: 40px;">
@@ -58,12 +76,24 @@ router.post('/', async (req, res) => {
           <p style="text-align: center; font-size: 12px; color: #999; margin-top: 20px;">This is an automated notification from your portfolio website.</p>
         </div>
       `,
+      attachments: [] // Initialize attachments array
     };
+
+    // If a file was uploaded, add it to the attachments
+    if (req.file) {
+      mailToOwner.attachments.push({
+        filename: req.file.originalname,
+        content: req.file.buffer,
+        contentType: req.file.mimetype,
+      });
+    }
+
     await transporter.sendMail(mailToOwner);
 
     res.status(201).json({ message: 'Project submitted successfully!' });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error("Error submitting project:", error);
+    res.status(500).json({ error: 'Server error while processing your request.' });
   }
 });
 
